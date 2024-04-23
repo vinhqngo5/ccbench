@@ -11,25 +11,20 @@ monitored_EVENTS = [
     "STORE_ON_SHARED",
     "STORE_ON_OWNED",
     "STORE_ON_INVALID",
-    # "LOAD_FROM_MODIFIED",
-    # "LOAD_FROM_EXCLUSIVE",
-    # "LOAD_FROM_SHARED",
-    # "LOAD_FROM_OWNED",
-    # "LOAD_FROM_INVALID",
-    # "CAS",
-    # "FAI",
-    # "TAS",
-    # "SWAP",
-    # "CAS_ON_MODIFIED",
-    # "FAI_ON_MODIFIED",
-    # "TAS_ON_MODIFIED",
-    # "SWAP_ON_MODIFIED",
-    # "CAS_ON_SHARED",
-    # "FAI_ON_SHARED",
-    # "TAS_ON_SHARED",
-    # "SWAP_ON_SHARED",
-    # "CAS_CONCURRENT",
-    # "FAI_ON_INVALID",
+    "LOAD_FROM_MODIFIED",
+    "LOAD_FROM_EXCLUSIVE",
+    "LOAD_FROM_SHARED",
+    "LOAD_FROM_OWNED",
+    "LOAD_FROM_INVALID",
+    "CAS_ON_MODIFIED",
+    "FAI_ON_MODIFIED",
+    "TAS_ON_MODIFIED",
+    "SWAP_ON_MODIFIED",
+    "CAS_ON_SHARED",
+    "FAI_ON_SHARED",
+    "TAS_ON_SHARED",
+    "SWAP_ON_SHARED",
+    "LOAD_FROM_L1"
 ]
 
 # monitored distances
@@ -58,7 +53,7 @@ result = {}
 for i, event in enumerate(monitored_EVENTS):
     for distance in monitored_distances:
         # if distance_setting exists, set distance_setting   else use default value
-        distance_setting = EVENTS[event]["distance_setting"] if "distance_setting" in EVENTS[event] else DEFAULT_DISTANCE_SETTINGS[distance]
+        distance_setting = EVENTS[event]["distance_setting"][distance] if "distance_setting" in EVENTS[event] else DEFAULT_DISTANCE_SETTINGS[distance]
         cores = EVENTS[event]["cores"] if "cores" in EVENTS[event] else DEFAULT_CORES
         which_core_to_get_result = EVENTS[event]["which_core_to_get_result"] if "which_core_to_get_result" in EVENTS[event] else DEFAULT_CORE_TO_GET_RESULT
 
