@@ -44,3 +44,5 @@
 /xeon_cores
 /xeon_dist.out
 cscope.*
+/output*
+__pycache__/
