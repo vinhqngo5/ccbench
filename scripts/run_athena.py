@@ -63,7 +63,8 @@ for i, event in enumerate(monitored_EVENTS):
             "--cores", str(cores),
             *distance_setting.split(),
             "-t", str(EVENTS[event]["event_id"]),
-            "--mem-size", "2122317824",
+            # "--mem-size", "2122317824",
+            "--fence", "2",
             # "--flush"
         ]
 

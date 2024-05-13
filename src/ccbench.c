@@ -89,6 +89,7 @@ int main(int argc, char** argv) {
     set_cpu(0);
 #endif
 
+    // parse arguments
     struct option long_options[] = {// These options don't set a flag
                                     {"help", no_argument, NULL, 'h'}, {"cores", required_argument, NULL, 'c'}, {"repetitions", required_argument, NULL, 'r'}, {"test", required_argument, NULL, 't'}, {"core1", required_argument, NULL, 'x'}, {"core2", required_argument, NULL, 'y'}, {"core3", required_argument, NULL, 'z'}, {"core-others", required_argument, NULL, 'o'}, {"stride", required_argument, NULL, 's'}, {"fence", required_argument, NULL, 'e'}, {"mem-size", required_argument, NULL, 'm'}, {"flush", no_argument, NULL, 'f'}, {"success", no_argument, NULL, 'u'}, {"verbose", no_argument, NULL, 'v'}, {"print", required_argument, NULL, 'p'}, {NULL, 0, NULL, 0}};
 
@@ -212,12 +213,15 @@ int main(int argc, char** argv) {
         }
     }
 
+    // calculate the number of cache lines based on passed test_mem_size
     test_cache_line_num = test_mem_size / sizeof(cache_line_t);
 
+    // assert accessed cache line is within the allocated memory
     if ((test_test == STORE_ON_EXCLUSIVE || test_test == STORE_ON_INVALID || test_test == LOAD_FROM_INVALID || test_test == LOAD_FROM_EXCLUSIVE || test_test == LOAD_FROM_SHARED) && !test_flush) {
         assert((test_reps * test_stride) <= test_cache_line_num);
     }
 
+    // assert stride is smaller than the number of cache lines
     if (test_test != LOAD_FROM_MEM_SIZE) {
         assert(test_stride < test_cache_line_num);
     }
@@ -230,6 +234,7 @@ int main(int argc, char** argv) {
 
     printf("  / fence: ");
 
+    //  settings lfence and sfence based on passed test_fence
     switch (test_fence) {
         case 1:
             printf(" load & store");
@@ -288,11 +293,14 @@ int main(int argc, char** argv) {
     }
     printf("\n");
 
+    // init barriers
     barriers_init(test_cores);
     seeds = seed_rand();
 
+    // allocate cache memory
     volatile cache_line_t* cache_line = cache_line_open();
 
+    // init threads
     int rank;
     for (rank = 1; rank < test_cores; rank++) {
         pid_t child = fork();
@@ -304,6 +312,7 @@ int main(int argc, char** argv) {
     }
     rank = 0;
 
+// based on the core ID, specify the code to run
 fork_done:
     ID = rank;
     size_t core = 0;
@@ -336,8 +345,10 @@ fork_done:
     tmc_cmem_init(0); /*   initialize shared memory */
 #endif                /* TILERA */
 
+    // get the pointer to the first cache line
     volatile uint64_t* cl = (volatile uint64_t*)cache_line;
 
+    // wait for all threads to be ready
     B0;
     if (ID < 3) {
         PFDINIT(test_reps);
@@ -351,7 +362,11 @@ fork_done:
     uint64_t sum = 0;
 
     volatile uint64_t reps;
+
+    // repeat the test for test_reps (default: 10,000) times
     for (reps = 0; reps < test_reps; reps++) {
+        // perform a cache line flush before continue testing
+        // note: only flush the first cache line? what if not flushed? (according to the code, if not flust, the cache line will be increased by test_stride)
         if (test_flush) {
             _mm_mfence();
             _mm_clflush((void*)cache_line);
@@ -1524,6 +1539,10 @@ static uint64_t load_0_eventually_nf(volatile cache_line_t* cl, volatile uint64_
     volatile uint64_t val = 0;
 
     do {
+        // random a address within [0, test_stride] -> maybe just to fool the compiler and prefetcher/hardware or something?
+        // but it is enough? https://godbolt.org/z/Y1esqPvs7
+        // volatile -> fool the compiler
+        // clrand() -> fool the prefetcher? but the cacheline is already in the cache, so it is not necessary?
         cln = clrand();
         volatile uint32_t* w = &cl[cln].word[0];
         PFDI(0);
