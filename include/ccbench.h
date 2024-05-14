@@ -113,12 +113,11 @@ typedef enum {
     PROFILER,
     PAUSE,
     NOP,
+    LOAD_FROM_L2,
     NUM_EVENTS, /* placeholder for printing the num of events */
 } moesi_type_t;
 
-const char* moesi_type_des[] = {
-    "STORE_ON_MODIFIED", "STORE_ON_MODIFIED_NO_SYNC", "STORE_ON_EXCLUSIVE", "STORE_ON_SHARED", "STORE_ON_OWNED_MINE", "STORE_ON_OWNED", "STORE_ON_INVALID", "LOAD_FROM_MODIFIED", "LOAD_FROM_EXCLUSIVE", "LOAD_FROM_SHARED", "LOAD_FROM_OWNED", "LOAD_FROM_INVALID", "CAS", "FAI", "TAS", "SWAP", "CAS_ON_MODIFIED", "FAI_ON_MODIFIED", "TAS_ON_MODIFIED", "SWAP_ON_MODIFIED", "CAS_ON_SHARED", "FAI_ON_SHARED", "TAS_ON_SHARED", "SWAP_ON_SHARED", "CAS_CONCURRENT", "FAI_ON_INVALID", "LOAD_FROM_L1", "LOAD_FROM_MEM_SIZE", "LFENCE", "SFENCE", "MFENCE", "PROFILER", "PAUSE", "NOP",
-};
+const char* moesi_type_des[] = {"STORE_ON_MODIFIED", "STORE_ON_MODIFIED_NO_SYNC", "STORE_ON_EXCLUSIVE", "STORE_ON_SHARED", "STORE_ON_OWNED_MINE", "STORE_ON_OWNED", "STORE_ON_INVALID", "LOAD_FROM_MODIFIED", "LOAD_FROM_EXCLUSIVE", "LOAD_FROM_SHARED", "LOAD_FROM_OWNED", "LOAD_FROM_INVALID", "CAS", "FAI", "TAS", "SWAP", "CAS_ON_MODIFIED", "FAI_ON_MODIFIED", "TAS_ON_MODIFIED", "SWAP_ON_MODIFIED", "CAS_ON_SHARED", "FAI_ON_SHARED", "TAS_ON_SHARED", "SWAP_ON_SHARED", "CAS_CONCURRENT", "FAI_ON_INVALID", "LOAD_FROM_L1", "LOAD_FROM_MEM_SIZE", "LFENCE", "SFENCE", "MFENCE", "PROFILER", "PAUSE", "NOP", "LOAD_FROM_L2"};
 
 #define DEFAULT_CORES 2
 #define DEFAULT_REPS 10000
@@ -135,6 +134,18 @@ const char* moesi_type_des[] = {
 #define DEFAULT_LFENCE 0
 #define DEFAULT_SFENCE 0
 #define DEFAULT_AO_SUCCESS 0
+
+
+/* coherency states */
+#define MODE_EXCLUSIVE 0x01
+#define MODE_MODIFIED  0x02
+#define MODE_INVALID   0x04
+#define MODE_SHARED    0x08
+#define MODE_OWNED     0x10
+#define MODE_FORWARD   0x20
+#define MODE_RDONLY    0x40
+#define MODE_MUW       0x80
+#define MODE_DISABLED  0x00
 
 #define CACHE_LINE_MEM_FILE "/cache_line"
 
@@ -210,45 +221,45 @@ const char* moesi_type_des[] = {
 #endif
 #endif
 
-extern inline void set_cpu(int cpu) {
-#if defined(__sparc__)
-    processor_bind(P_LWPID, P_MYID, cpu, NULL);
-#elif defined(__tile__)
-    if (tmc_cpus_set_my_cpu(tmc_cpus_find_nth_cpu(&cpus, cpu)) < 0) {
-        tmc_task_die("Failure in 'tmc_cpus_set_my_cpu()'.");
-    }
+// extern inline void set_cpu(int cpu) {
+// #if defined(__sparc__)
+//     processor_bind(P_LWPID, P_MYID, cpu, NULL);
+// #elif defined(__tile__)
+//     if (tmc_cpus_set_my_cpu(tmc_cpus_find_nth_cpu(&cpus, cpu)) < 0) {
+//         tmc_task_die("Failure in 'tmc_cpus_set_my_cpu()'.");
+//     }
 
-    if (cpu != tmc_cpus_get_my_cpu()) {
-        PRINT("******* i am not CPU %d", tmc_cpus_get_my_cpu());
-    }
+//     if (cpu != tmc_cpus_get_my_cpu()) {
+//         PRINT("******* i am not CPU %d", tmc_cpus_get_my_cpu());
+//     }
 
-#else
-    cpu_set_t mask;
-    CPU_ZERO(&mask);
-    CPU_SET(cpu, &mask);
-    if (sched_setaffinity(0, sizeof(cpu_set_t), &mask) != 0) {
-        printf("Problem with setting processor affinity: %s\n", strerror(errno));
-        exit(3);
-    }
-#endif
+// #else
+//     cpu_set_t mask;
+//     CPU_ZERO(&mask);
+//     CPU_SET(cpu, &mask);
+//     if (sched_setaffinity(0, sizeof(cpu_set_t), &mask) != 0) {
+//         printf("Problem with setting processor affinity: %s\n", strerror(errno));
+//         exit(3);
+//     }
+// #endif
 
-#ifdef OPTERON
-    uint32_t numa_node = cpu / 6;
-    numa_set_preferred(numa_node);
-#elif defined(XEON)
-    uint32_t numa_node = 0;
-    if (cpu == 0) {
-        numa_node = 4;
-    } else if (cpu <= 40) {
-        numa_node = (cpu - 1) / 10;
-    } else {
-        numa_node = cpu / 10;
-    }
-    numa_set_preferred(numa_node);
-#elif defined(PLATFORM_NUMA)
-    printf("* You need to define how cores correspond to mem nodes in ccbench.h\n");
-#endif
-}
+// #ifdef OPTERON
+//     uint32_t numa_node = cpu / 6;
+//     numa_set_preferred(numa_node);
+// #elif defined(XEON)
+//     uint32_t numa_node = 0;
+//     if (cpu == 0) {
+//         numa_node = 4;
+//     } else if (cpu <= 40) {
+//         numa_node = (cpu - 1) / 10;
+//     } else {
+//         numa_node = cpu / 10;
+//     }
+//     numa_set_preferred(numa_node);
+// #elif defined(PLATFORM_NUMA)
+//     printf("* You need to define how cores correspond to mem nodes in ccbench.h\n");
+// #endif
+// }
 
 inline void wait_cycles(volatile uint64_t cycles) {
     /* cycles >>= 1; */

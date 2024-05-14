@@ -29,6 +29,8 @@
 
 #include "ccbench.h"
 
+#include "arch.h"
+
 uint8_t ID;
 unsigned long* seeds;
 
@@ -74,6 +76,8 @@ static uint32_t swap(volatile cache_line_t* cl, volatile uint64_t reps);
 
 static size_t parse_size(char* optarg);
 static void create_rand_list_cl(volatile uint64_t* list, size_t n);
+static inline int cacheflush(int level,int num_flushes,int mode,void* buffer,cpu_info_t cpuinfo);
+// int inline clflush(void* buffer,unsigned long long size,cpu_info_t cpuinfo);
 
 int main(int argc, char** argv) {
     /* before doing any allocations */
@@ -296,6 +300,10 @@ int main(int argc, char** argv) {
     // init barriers
     barriers_init(test_cores);
     seeds = seed_rand();
+
+    // init cpu info
+    cpu_info_t cpu_info;
+    init_cpuinfo(&cpu_info, 1);
 
     // allocate cache memory
     volatile cache_line_t* cache_line = cache_line_open();
@@ -940,6 +948,24 @@ fork_done:
                 }
                 break;
             }
+            case LOAD_FROM_L2: /* 34 */
+            {
+                switch (ID) {
+                    case 0:
+                        // place cache line in L1
+                        sum += load_0(cache_line, reps);
+                        // cacheflush(2, 1, 0x01, cache_line, cpu_info);
+                        B1; /* BARRIER 1 */
+                        break;
+                    case 1:
+                        B1; /* BARRIER 1 */
+                        sum += load_0(cache_line, reps);
+                        break;
+                    default:
+                        break;
+                }
+                break;
+            }
             case LOAD_FROM_MEM_SIZE: /* 27 */
             {
                 if (ID < 3) {
@@ -1243,6 +1269,10 @@ fork_done:
             }
             case LOAD_FROM_L1: {
                 PRINT(" ** Results from Core 0: load from L1");
+                break;
+            }
+            case LOAD_FROM_L2: {
+                PRINT(" ** Results from Core 1: load from L2");
                 break;
             }
             case LOAD_FROM_MEM_SIZE: {
@@ -1808,3 +1838,107 @@ void cache_line_close(const uint32_t id, const char* name) {
     tmc_cmem_close();
 #endif
 }
+
+static inline int cacheflush(int level,int num_flushes,int mode,void* buffer,cpu_info_t cpuinfo) {
+
+  unsigned long long stride=cpuinfo.Cacheline_size[level-1]/num_flushes;
+  unsigned long long size=0;
+  int i,j,tmp=0x0fa38b09;
+
+  if (level>cpuinfo.Cachelevels) return -1;
+
+  // get cache size of each level
+  // size = size of all caches up to level
+  //exclusive caches
+  if ((!strcmp(cpuinfo.vendor,"AuthenticAMD")) && (cpuinfo.family != 21))for (i=0;i<level;i++)
+  {
+     if (cpuinfo.Cache_unified[i]) size+=cpuinfo.U_Cache_Size[i];
+     else size+=cpuinfo.D_Cache_Size[i];
+  }
+  //inclusive L2, exclusive L3
+  if ((!strcmp(cpuinfo.vendor,"AuthenticAMD")) && (cpuinfo.family == 21))
+  {
+    if (level<3)
+    {
+      i=level-1;
+   	  if (cpuinfo.Cache_unified[i]) size=cpuinfo.U_Cache_Size[i];
+      else size=cpuinfo.D_Cache_Size[i];
+    }
+    else for (i=1;i<level;i++)
+    {     
+     if (cpuinfo.Cache_unified[i]) size+=cpuinfo.U_Cache_Size[i];
+     else size+=cpuinfo.D_Cache_Size[i];
+    }
+  }
+  //inclusive caches
+  if (!strcmp(cpuinfo.vendor,"GenuineIntel"))
+  {
+     i=level-1;
+     if (cpuinfo.Cache_unified[i]) size=cpuinfo.U_Cache_Size[i];
+     else size=cpuinfo.D_Cache_Size[i];
+  } 
+
+  size*=cpuinfo.EXTRA_FLUSH_SIZE;
+  // double amount of accessed memory for LLC flushes and decrease num_flushes
+  if (level==cpuinfo.Cachelevels){ 
+    size*=2;
+    num_flushes/=3;
+    num_flushes++;
+  }
+  size/=100;
+
+  if (stride<sizeof(unsigned int)) stride=sizeof(unsigned int);
+  
+  if (mode!=MODE_RDONLY){
+    j=num_flushes;
+    while(j--)
+    {
+     for (i=0;i<size;i+=stride)
+     {
+       tmp|=*((int*)((unsigned long long)buffer+i));
+       *((int*)((unsigned long long)buffer+i))=tmp;
+     }
+    }
+  }
+  if ((mode==MODE_EXCLUSIVE)||(mode==MODE_INVALID)){
+    clflush(buffer,size,cpuinfo);
+  }
+  if ((mode==MODE_EXCLUSIVE)||(mode==MODE_RDONLY)){
+    j=num_flushes;
+    while(j--)
+    {
+     for (i=0;i<size;i+=stride)
+     {
+       tmp|=*((int*)((unsigned long long)buffer+i));
+     }
+     *((int*)((unsigned long long)buffer+i))=tmp;
+    }
+  }
+
+  return tmp;
+
+}
+
+// int inline clflush(void* buffer,unsigned long long size,cpu_info_t cpuinfo)
+// {
+//   #if defined (__x86_64__)
+//   unsigned long long addr,passes,linesize;
+
+//   if(!(cpuinfo.features&CLFLUSH) || !cpuinfo.clflush_linesize) return -1;
+  
+//   addr = (unsigned long long) buffer;
+//   linesize = (unsigned long long) cpuinfo.clflush_linesize;
+
+//   __asm__ __volatile__("mfence;"::: "memory"); 
+
+//   for(passes = (size/linesize);passes>0;passes--){
+//       __asm__ __volatile__("clflush (%%rax);":: "a" (addr));
+//       addr+=linesize;
+//   }
+
+//   __asm__ __volatile__("mfence;"::: "memory"); 
+
+//   #endif
+
+//   return 0;
+// }

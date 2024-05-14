@@ -61,8 +61,8 @@ default: ccbench
 
 all: ccbench
 
-ccbench: ccbench.o $(SRC)/pfd.c $(SRC)/barrier.c $(INCLUDE)/common.h $(INCLUDE)/ccbench.h $(INCLUDE)/pfd.h $(INCLUDE)/barrier.h barrier.o pfd.o
-	$(CC) $(VER_FLAGS) -o ccbench ccbench.o pfd.o barrier.o $(CFLAGS) $(LDFLAGS) -I./$(INCLUDE) 
+ccbench: ccbench.o $(SRC)/pfd.c $(SRC)/barrier.c $(INCLUDE)/common.h $(INCLUDE)/ccbench.h $(INCLUDE)/pfd.h $(INCLUDE)/barrier.h barrier.o pfd.o arch.o properties.o x86.o generic.o
+	$(CC) $(VER_FLAGS) -o ccbench ccbench.o pfd.o barrier.o arch.o properties.o x86.o generic.o $(CFLAGS) $(LDFLAGS) -I./$(INCLUDE) 
 
 ccbench.o: $(SRC)/ccbench.c $(INCLUDE)/ccbench.h
 	$(CC) $(VER_FLAGS) -c $(SRC)/ccbench.c $(CFLAGS) -I./$(INCLUDE) 
@@ -72,6 +72,18 @@ pfd.o: $(SRC)/pfd.c $(INCLUDE)/pfd.h
 
 barrier.o: $(SRC)/barrier.c $(INCLUDE)/barrier.h
 	$(CC) $(VER_FLAGS) -c $(SRC)/barrier.c $(CFLAGS) -I./$(INCLUDE) 
+
+arch.o: $(SRC)/arch.c $(INCLUDE)/arch.h $(SRC)/generic.c $(SRC)/properties.c $(INCLUDE)/properties.h $(INCLUDE)/cpu.h $(SRC)/x86.c $(INCLUDE)/x86.h  
+	$(CC) $(VER_FLAGS) -c $(SRC)/arch.c    $(CFLAGS) -I./$(INCLUDE)
+
+properties.o: $(SRC)/arch.c $(INCLUDE)/arch.h $(SRC)/generic.c $(SRC)/properties.c $(INCLUDE)/properties.h $(INCLUDE)/cpu.h $(SRC)/x86.c $(INCLUDE)/x86.h  
+	$(CC) $(VER_FLAGS) -c $(SRC)/properties.c    $(CFLAGS) -I./$(INCLUDE)
+
+x86.o: $(SRC)/arch.c $(INCLUDE)/arch.h $(SRC)/generic.c $(SRC)/properties.c $(INCLUDE)/properties.h $(INCLUDE)/cpu.h $(SRC)/x86.c $(INCLUDE)/x86.h  
+	$(CC) $(VER_FLAGS) -c $(SRC)/x86.c    $(CFLAGS) -I./$(INCLUDE)
+
+generic.o: $(SRC)/arch.c $(INCLUDE)/arch.h $(SRC)/generic.c $(SRC)/properties.c $(INCLUDE)/properties.h $(INCLUDE)/cpu.h $(SRC)/x86.c $(INCLUDE)/x86.h  
+	$(CC) $(VER_FLAGS) -c $(SRC)/generic.c    $(CFLAGS) -I./$(INCLUDE)
 
 clean:
 	rm -f *.o ccbench
