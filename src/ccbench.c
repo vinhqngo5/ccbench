@@ -1485,6 +1485,7 @@ cas_0_eventually(volatile cache_line_t* cl, volatile uint64_t reps)
       volatile cache_line_t* cl1 = cl + cln;
       PFDI(0);
       r = CAS_U32(cl1->word, o, no);
+      _mm_lfence();
       PFDO(0, reps);
     }
   while (cln > 0);
@@ -1504,6 +1505,7 @@ fai(volatile cache_line_t* cl, volatile uint64_t reps)
       volatile cache_line_t* cl1 = cl + cln;
       PFDI(0);
       t = FAI_U32(cl1->word);
+      _mm_lfence();
       PFDO(0, reps);
     }
   while (cln > 0);
