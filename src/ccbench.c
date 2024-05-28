@@ -28,6 +28,7 @@
  */
 
 #include "ccbench.h"
+#include <xmmintrin.h>
 
 uint8_t ID;
 unsigned long* seeds;
@@ -1102,15 +1103,15 @@ fork_done:
                         PFDPN(0, test_reps, test_print);
                     }
                     break;
-                case CAS_POINTERCHASING:
-                case MOV_POINTERCHASING:
-                    if (ID >= 2) break;
-                    PRINT(" *** Core %2d ************************************************************************************", ID);
-                    if (ID == 1) {
-                        PRINT("IMPORTANT: The measured times for this core are actually about 32x the value of one operation.");
-                    }
-                    PFDPN(ID, test_reps, test_print);
-                    break;
+                // case CAS_POINTERCHASING:
+                // case MOV_POINTERCHASING:
+                //     if (ID >= 2) break;
+                //     PRINT(" *** Core %2d ************************************************************************************", ID);
+                //     if (ID == 1) {
+                //         PRINT("IMPORTANT: The measured times for this core are actually about 32x the value of one operation.");
+                //     }
+                //     PFDPN(ID, test_reps, test_print);
+                //     break;
                 default:
                     PRINT(" *** Core %2d ************************************************************************************", ID);
                     PFDPN(0, test_reps, test_print);
@@ -1895,64 +1896,62 @@ void cache_line_close(const uint32_t id, const char* name) {
 void cas_pointerchasing(volatile uint64_t *ptrs, size_t n_ptrs, volatile uint64_t reps) {
     volatile uint64_t **p = &ptrs;
 
-    {
-      asm volatile("");
-      _pfd_s[1] = getticks();
-      ;
-      (void)CAS_U64(p, *p, (uint64_t *)**p);
-      (void)CAS_U64(p, *p, (uint64_t *)**p);
-      (void)CAS_U64(p, *p, (uint64_t *)**p);
-      (void)CAS_U64(p, *p, (uint64_t *)**p);
-      (void)CAS_U64(p, *p, (uint64_t *)**p);
-      (void)CAS_U64(p, *p, (uint64_t *)**p);
-      (void)CAS_U64(p, *p, (uint64_t *)**p);
-      (void)CAS_U64(p, *p, (uint64_t *)**p);
-      (void)CAS_U64(p, *p, (uint64_t *)**p);
-      (void)CAS_U64(p, *p, (uint64_t *)**p);
-      (void)CAS_U64(p, *p, (uint64_t *)**p);
-      (void)CAS_U64(p, *p, (uint64_t *)**p);
-      (void)CAS_U64(p, *p, (uint64_t *)**p);
-      (void)CAS_U64(p, *p, (uint64_t *)**p);
-      (void)CAS_U64(p, *p, (uint64_t *)**p);
-      (void)CAS_U64(p, *p, (uint64_t *)**p);
-      (void)CAS_U64(p, *p, (uint64_t *)**p);
-      (void)CAS_U64(p, *p, (uint64_t *)**p);
-      (void)CAS_U64(p, *p, (uint64_t *)**p);
-      (void)CAS_U64(p, *p, (uint64_t *)**p);
-      (void)CAS_U64(p, *p, (uint64_t *)**p);
-      (void)CAS_U64(p, *p, (uint64_t *)**p);
-      (void)CAS_U64(p, *p, (uint64_t *)**p);
-      (void)CAS_U64(p, *p, (uint64_t *)**p);
-      (void)CAS_U64(p, *p, (uint64_t *)**p);
-      (void)CAS_U64(p, *p, (uint64_t *)**p);
-      (void)CAS_U64(p, *p, (uint64_t *)**p);
-      (void)CAS_U64(p, *p, (uint64_t *)**p);
-      (void)CAS_U64(p, *p, (uint64_t *)**p);
-      (void)CAS_U64(p, *p, (uint64_t *)**p);
-      (void)CAS_U64(p, *p, (uint64_t *)**p);
-      (void)CAS_U64(p, *p, (uint64_t *)**p);
-      PFDO(1, reps);
+    PFDI(0);
+    (void)CAS_U64(p, *p, (uint64_t *)**p);
+    (void)CAS_U64(p, *p, (uint64_t *)**p);
+    (void)CAS_U64(p, *p, (uint64_t *)**p);
+    (void)CAS_U64(p, *p, (uint64_t *)**p);
+    (void)CAS_U64(p, *p, (uint64_t *)**p);
+    (void)CAS_U64(p, *p, (uint64_t *)**p);
+    (void)CAS_U64(p, *p, (uint64_t *)**p);
+    (void)CAS_U64(p, *p, (uint64_t *)**p);
+    (void)CAS_U64(p, *p, (uint64_t *)**p);
+    (void)CAS_U64(p, *p, (uint64_t *)**p);
+    (void)CAS_U64(p, *p, (uint64_t *)**p);
+    (void)CAS_U64(p, *p, (uint64_t *)**p);
+    (void)CAS_U64(p, *p, (uint64_t *)**p);
+    (void)CAS_U64(p, *p, (uint64_t *)**p);
+    (void)CAS_U64(p, *p, (uint64_t *)**p);
+    (void)CAS_U64(p, *p, (uint64_t *)**p);
+    (void)CAS_U64(p, *p, (uint64_t *)**p);
+    (void)CAS_U64(p, *p, (uint64_t *)**p);
+    (void)CAS_U64(p, *p, (uint64_t *)**p);
+    (void)CAS_U64(p, *p, (uint64_t *)**p);
+    (void)CAS_U64(p, *p, (uint64_t *)**p);
+    (void)CAS_U64(p, *p, (uint64_t *)**p);
+    (void)CAS_U64(p, *p, (uint64_t *)**p);
+    (void)CAS_U64(p, *p, (uint64_t *)**p);
+    (void)CAS_U64(p, *p, (uint64_t *)**p);
+    (void)CAS_U64(p, *p, (uint64_t *)**p);
+    (void)CAS_U64(p, *p, (uint64_t *)**p);
+    (void)CAS_U64(p, *p, (uint64_t *)**p);
+    (void)CAS_U64(p, *p, (uint64_t *)**p);
+    (void)CAS_U64(p, *p, (uint64_t *)**p);
+    (void)CAS_U64(p, *p, (uint64_t *)**p);
+    (void)CAS_U64(p, *p, (uint64_t *)**p);
+    _mm_sfence();
+    PFDO(0, reps);
 
-      // This^ is measuring approx. 32x the latency of one CAS
-      // However, this does not automatically account for time spent
-      // loading data from memory.
-      //
-      // They disassemble to something along the lines of:
-      //   ...
-      //  mov    0x8(%rsp),%rax
-      //  mov    (%rax),%rdx
-      //  lock cmpxchg %rdx,0x8(%rsp)
-      //   ...
-      //
-      // If we did pointer chasing with just regular movs, we would need only
-      // one pointer dereference, whereas here we have three. Although I can't
-      // work out why '0x8(%rsp)' is repeated twice.
-    }
+    // This^ is measuring approx. 32x the latency of one CAS
+    // However, this does not automatically account for time spent
+    // loading data from memory.
+    //
+    // They disassemble to something along the lines of:
+    //   ...
+    //  mov    0x8(%rsp),%rax
+    //  mov    (%rax),%rdx
+    //  lock cmpxchg %rdx,0x8(%rsp)
+    //   ...
+    //
+    // If we did pointer chasing with just regular movs, we would need only
+    // one pointer dereference, whereas here we have three. Although I can't
+    // work out why '0x8(%rsp)' is repeated twice.
+}
 
 static void mov_pointerchasing(volatile uint64_t *ptrs, volatile uint64_t reps) {
     volatile uint64_t *p = ptrs;
 
-    PFDI(1);
+    PFDI(0);
     __asm__ volatile (
         "movq (%%rbx), %%rbx;"
         "movq (%%rbx), %%rbx;"
@@ -1990,15 +1989,17 @@ static void mov_pointerchasing(volatile uint64_t *ptrs, volatile uint64_t reps) 
         : "b"(p)
         : // No clobbers
     );
-    PFDO(1, reps);
+    PFDO(0, reps);
 }
 
 static void store_pointerchasing(volatile uint64_t *start_ptr, volatile uint64_t reps) {
+    PFDI(1);
     for (int i = 0; i < 32; i++) {
         // The bit in brackets writes the pointer in memory so that the cache line
         // is in the modified state.
         start_ptr = (uint64_t*)(*start_ptr = *start_ptr); 
     }
+    PFDO(1, reps);
     // Make sure all stores finish by the time the pointer chasing thread will start
     _mm_sfence();
 }
