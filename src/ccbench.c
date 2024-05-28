@@ -75,6 +75,10 @@ static uint32_t swap(volatile cache_line_t* cl, volatile uint64_t reps);
 static size_t parse_size(char* optarg);
 static void create_rand_list_cl(volatile uint64_t* list, size_t n);
 
+static void cas_pointerchasing(volatile uint64_t *ptrs, size_t n_ptrs, volatile uint64_t reps);
+static void mov_pointerchasing(volatile uint64_t *ptrs, volatile uint64_t reps);
+static void store_pointerchasing(volatile uint64_t *start_ptr, volatile uint64_t reps);
+
 int main(int argc, char** argv) {
     /* before doing any allocations */
 #if defined(__tile__)
@@ -359,12 +363,45 @@ fork_done:
     /*  *  main functionality */
     /*  *********************************************************************************\/ */
 
+    if (test_test == CAS_POINTERCHASING && ID == 0) {
+        printf("Initialising array.\n");
+
+        // Sattolo's Algorithm
+
+        uint64_t n = test_mem_size / sizeof(uint64_t);
+
+        for (uint64_t i = 0; i <= n - 1; i++) {
+            cl[i]=(uint64_t)&cl[i];
+        }
+
+        for (uint64_t i = 0; i <= n - 2; i++) {
+            uint64_t j = rand_64(i+1, n);
+            uint64_t k = (uint64_t)cl[i];
+            cl[i] = (uint64_t)cl[j];
+            cl[j] = k;
+        }
+
+        printf("Trying to traverse pointer.\n");
+        printf("Length: %zu\n", test_mem_size / sizeof(uint64_t));
+        volatile uint64_t *ptr = cl;
+        volatile uint64_t *first = ptr;
+        uint64_t counter = 0;
+        do {
+            ptr = (uint64_t*)*ptr;
+            counter++;
+        } while (ptr != first);
+
+        printf("Finished traversal, counter = %zu\n", counter);
+        assert(counter == test_mem_size / sizeof(uint64_t));
+    }
+
     uint64_t sum = 0;
 
     volatile uint64_t reps;
 
     // repeat the test for test_reps (default: 10,000) times
     for (reps = 0; reps < test_reps; reps++) {
+        volatile uint64_t *ptrchasing_start = NULL;
         // perform a cache line flush before continue testing
         // note: only flush the first cache line? what if not flushed? (according to the code, if not flust, the cache line will be increased by test_stride)
         if (test_flush) {
@@ -981,6 +1018,39 @@ fork_done:
                     PFDO(0, reps);
                 }
                 break;
+            case CAS_POINTERCHASING:
+                // Ensure that when each thread picks a random pointer to start chasing
+                // from, they pick the same one.
+                srand(reps);
+                ptrchasing_start = &cl[rand_64(0, test_mem_size / sizeof(uint64_t))];
+                switch (ID) {
+                case 0:
+                    store_pointerchasing(ptrchasing_start, reps);
+                    B1;
+                    break;
+                case 1:
+                    B1;
+                    cas_pointerchasing(ptrchasing_start, test_mem_size / sizeof(uint64_t), reps);
+                    break;
+                default:
+                    B1;
+                    break;
+                }
+                break;
+            case MOV_POINTERCHASING:
+                srand(reps);
+                ptrchasing_start = &cl[rand_64(0, test_mem_size / sizeof(uint64_t))];
+                switch (ID) {
+                case 0:
+                    store_pointerchasing(ptrchasing_start, reps);
+                    B1;
+                    break;
+                case 1:
+                    B1;
+                    mov_pointerchasing(ptrchasing_start, reps);
+                    break;
+                }
+      break;
             case PROFILER: /* 30 */
             default:
                 PFDI(0);
@@ -1027,6 +1097,14 @@ fork_done:
                         PRINT(" *** Core %2d ************************************************************************************", ID);
                         PFDPN(0, test_reps, test_print);
                     }
+                    break;
+                case CAS_POINTERCHASING:
+                case MOV_POINTERCHASING:
+                    PRINT(" *** Core %2d ************************************************************************************", ID);
+                    if (ID == 1) {
+                        PRINT("IMPORTANT: The measured times for this core are actually about 32x the value of one operation.");
+                    }
+                    PFDPN(0, test_reps, test_print);
                     break;
                 default:
                     PRINT(" *** Core %2d ************************************************************************************", ID);
@@ -1807,4 +1885,111 @@ void cache_line_close(const uint32_t id, const char* name) {
 #else
     tmc_cmem_close();
 #endif
+}
+
+void cas_pointerchasing(volatile uint64_t *ptrs, size_t n_ptrs, volatile uint64_t reps) {
+    volatile uint64_t **p = &ptrs;
+
+    PFDI(0);
+    (void)CAS_U64(p, *p, (uint64_t*)**p);
+    (void)CAS_U64(p, *p, (uint64_t*)**p);
+    (void)CAS_U64(p, *p, (uint64_t*)**p);
+    (void)CAS_U64(p, *p, (uint64_t*)**p);
+    (void)CAS_U64(p, *p, (uint64_t*)**p);
+    (void)CAS_U64(p, *p, (uint64_t*)**p);
+    (void)CAS_U64(p, *p, (uint64_t*)**p);
+    (void)CAS_U64(p, *p, (uint64_t*)**p);
+    (void)CAS_U64(p, *p, (uint64_t*)**p);
+    (void)CAS_U64(p, *p, (uint64_t*)**p);
+    (void)CAS_U64(p, *p, (uint64_t*)**p);
+    (void)CAS_U64(p, *p, (uint64_t*)**p);
+    (void)CAS_U64(p, *p, (uint64_t*)**p);
+    (void)CAS_U64(p, *p, (uint64_t*)**p);
+    (void)CAS_U64(p, *p, (uint64_t*)**p);
+    (void)CAS_U64(p, *p, (uint64_t*)**p);
+    (void)CAS_U64(p, *p, (uint64_t*)**p);
+    (void)CAS_U64(p, *p, (uint64_t*)**p);
+    (void)CAS_U64(p, *p, (uint64_t*)**p);
+    (void)CAS_U64(p, *p, (uint64_t*)**p);
+    (void)CAS_U64(p, *p, (uint64_t*)**p);
+    (void)CAS_U64(p, *p, (uint64_t*)**p);
+    (void)CAS_U64(p, *p, (uint64_t*)**p);
+    (void)CAS_U64(p, *p, (uint64_t*)**p);
+    (void)CAS_U64(p, *p, (uint64_t*)**p);
+    (void)CAS_U64(p, *p, (uint64_t*)**p);
+    (void)CAS_U64(p, *p, (uint64_t*)**p);
+    (void)CAS_U64(p, *p, (uint64_t*)**p);
+    (void)CAS_U64(p, *p, (uint64_t*)**p);
+    (void)CAS_U64(p, *p, (uint64_t*)**p);
+    (void)CAS_U64(p, *p, (uint64_t*)**p);
+    (void)CAS_U64(p, *p, (uint64_t*)**p);
+    PFDO(0, reps); 
+
+    // This^ is measuring approx. 32x the latency of one CAS
+    // However, this does not automatically account for time spent
+    // loading data from memory.
+    //
+    // They disassemble to something along the lines of:
+    //   ...
+    //  mov    0x8(%rsp),%rax
+    //  mov    (%rax),%rdx
+    //  lock cmpxchg %rdx,0x8(%rsp)
+    //   ...
+    //
+    // If we did pointer chasing with just regular movs, we would need only one
+    // pointer dereference, whereas here we have three. Although I can't work out
+    // why '0x8(%rsp)' is repeated twice.
+}
+
+static void mov_pointerchasing(volatile uint64_t *ptrs, volatile uint64_t reps) {
+    volatile uint64_t *p = ptrs;
+
+    PFDI(0);
+    __asm__ volatile (
+        "movq (%%rbx), %%rbx;"
+        "movq (%%rbx), %%rbx;"
+        "movq (%%rbx), %%rbx;"
+        "movq (%%rbx), %%rbx;"
+        "movq (%%rbx), %%rbx;"
+        "movq (%%rbx), %%rbx;"
+        "movq (%%rbx), %%rbx;"
+        "movq (%%rbx), %%rbx;"
+        "movq (%%rbx), %%rbx;"
+        "movq (%%rbx), %%rbx;"
+        "movq (%%rbx), %%rbx;"
+        "movq (%%rbx), %%rbx;"
+        "movq (%%rbx), %%rbx;"
+        "movq (%%rbx), %%rbx;"
+        "movq (%%rbx), %%rbx;"
+        "movq (%%rbx), %%rbx;"
+        "movq (%%rbx), %%rbx;"
+        "movq (%%rbx), %%rbx;"
+        "movq (%%rbx), %%rbx;"
+        "movq (%%rbx), %%rbx;"
+        "movq (%%rbx), %%rbx;"
+        "movq (%%rbx), %%rbx;"
+        "movq (%%rbx), %%rbx;"
+        "movq (%%rbx), %%rbx;"
+        "movq (%%rbx), %%rbx;"
+        "movq (%%rbx), %%rbx;"
+        "movq (%%rbx), %%rbx;"
+        "movq (%%rbx), %%rbx;"
+        "movq (%%rbx), %%rbx;"
+        "movq (%%rbx), %%rbx;"
+        "movq (%%rbx), %%rbx;"
+        "movq (%%rbx), %%rbx;"
+        :
+        : "b"(p)
+        :
+    );
+    PFDO(0, reps);
+}
+
+static void store_pointerchasing(volatile uint64_t *start_ptr, volatile uint64_t reps) {
+    for (int i = 0; i < 32; i++) {
+        // The bit in brackets writes the pointer in memory so that the cache line
+        // is in the modified state.
+        start_ptr = (uint64_t*)(*start_ptr = *start_ptr); 
+    }
+    _mm_sfence();
 }

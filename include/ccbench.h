@@ -113,6 +113,8 @@ typedef enum {
     PROFILER,
     PAUSE,
     NOP,
+    CAS_POINTERCHASING,
+    MOV_POINTERCHASING,
     NUM_EVENTS, /* placeholder for printing the num of events */
 } moesi_type_t;
 
@@ -323,4 +325,12 @@ static inline uint32_t pow2roundup(uint32_t x) {
     x |= x >> 16;
     return x + 1;
 }
+
+uint64_t rand_64(uint64_t min, uint64_t max) {
+    uint64_t r = ((uint64_t)rand() << 32) | (uint64_t)rand();
+    r = ((r - min) % (max - min)) + min;
+    assert(r >= min && r < max);
+    return r;
+}
+
 #endif /* _H_CCBENCH_ */

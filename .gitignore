@@ -46,3 +46,6 @@
 cscope.*
 /output*
 __pycache__/
+.cache
+*.vim
+compile_commands.json
