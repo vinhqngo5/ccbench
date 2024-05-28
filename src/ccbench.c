@@ -363,17 +363,19 @@ fork_done:
     /*  *  main functionality */
     /*  *********************************************************************************\/ */
 
-    if (test_test == CAS_POINTERCHASING && ID == 0) {
+    if ((test_test == CAS_POINTERCHASING || test_test == MOV_POINTERCHASING) && ID == 0) {
         printf("Initialising array.\n");
 
-        // Sattolo's Algorithm
+        // Sattolo's Algorithm which will produce a random cycle embedding in memory.
 
         uint64_t n = test_mem_size / sizeof(uint64_t);
 
+        // Make every pointer point to itself (individual cycles)
         for (uint64_t i = 0; i <= n - 1; i++) {
             cl[i]=(uint64_t)&cl[i];
         }
 
+        // Iteratively merge two random cycles until one random cycle has been produced.
         for (uint64_t i = 0; i <= n - 2; i++) {
             uint64_t j = rand_64(i+1, n);
             uint64_t k = (uint64_t)cl[i];
@@ -381,6 +383,7 @@ fork_done:
             cl[j] = k;
         }
 
+#if 0
         printf("Trying to traverse pointer.\n");
         printf("Length: %zu\n", test_mem_size / sizeof(uint64_t));
         volatile uint64_t *ptr = cl;
@@ -393,6 +396,7 @@ fork_done:
 
         printf("Finished traversal, counter = %zu\n", counter);
         assert(counter == test_mem_size / sizeof(uint64_t));
+#endif
     }
 
     uint64_t sum = 0;
@@ -1978,9 +1982,9 @@ static void mov_pointerchasing(volatile uint64_t *ptrs, volatile uint64_t reps) 
         "movq (%%rbx), %%rbx;"
         "movq (%%rbx), %%rbx;"
         "movq (%%rbx), %%rbx;"
-        :
+        : // No outputs
         : "b"(p)
-        :
+        : // No clobbers
     );
     PFDO(0, reps);
 }
@@ -1991,5 +1995,6 @@ static void store_pointerchasing(volatile uint64_t *start_ptr, volatile uint64_t
         // is in the modified state.
         start_ptr = (uint64_t*)(*start_ptr = *start_ptr); 
     }
+    // Make sure all stores finish by the time the pointer chasing thread will start
     _mm_sfence();
 }
