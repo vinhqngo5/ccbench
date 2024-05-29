@@ -28,6 +28,7 @@
  */
 
 #include "ccbench.h"
+#include <emmintrin.h>
 #include <xmmintrin.h>
 
 uint8_t ID;
@@ -1103,15 +1104,14 @@ fork_done:
                         PFDPN(0, test_reps, test_print);
                     }
                     break;
-                // case CAS_POINTERCHASING:
-                // case MOV_POINTERCHASING:
-                //     if (ID >= 2) break;
-                //     PRINT(" *** Core %2d ************************************************************************************", ID);
-                //     if (ID == 1) {
-                //         PRINT("IMPORTANT: The measured times for this core are actually about 32x the value of one operation.");
-                //     }
-                //     PFDPN(ID, test_reps, test_print);
-                //     break;
+                case CAS_POINTERCHASING:
+                case MOV_POINTERCHASING:
+                    PRINT(" *** Core %2d ************************************************************************************", ID);
+                    if (ID == 1) {
+                        PRINT("IMPORTANT: Due to loop unrolling, measured times for this core are in fact measuring 32 operations");
+                    }
+                    PFDPN(0, test_reps, test_print);
+                    break;
                 default:
                     PRINT(" *** Core %2d ************************************************************************************", ID);
                     PFDPN(0, test_reps, test_print);
@@ -1897,7 +1897,7 @@ void cas_pointerchasing(volatile uint64_t *ptrs, size_t n_ptrs, volatile uint64_
     volatile uint64_t **p = &ptrs;
 
     PFDI(0);
-    _mm_mfence();
+    _mm_sfence();
     (void)CAS_U64(p, *p, (uint64_t *)**p);
     (void)CAS_U64(p, *p, (uint64_t *)**p);
     (void)CAS_U64(p, *p, (uint64_t *)**p);
@@ -1930,7 +1930,7 @@ void cas_pointerchasing(volatile uint64_t *ptrs, size_t n_ptrs, volatile uint64_
     (void)CAS_U64(p, *p, (uint64_t *)**p);
     (void)CAS_U64(p, *p, (uint64_t *)**p);
     (void)CAS_U64(p, *p, (uint64_t *)**p);
-    _mm_mfence();
+    _mm_sfence();
     PFDO(0, reps);
 
     // This^ is measuring approx. 32x the latency of one CAS
@@ -1953,6 +1953,7 @@ static void mov_pointerchasing(volatile uint64_t *ptrs, volatile uint64_t reps) 
     volatile uint64_t *p = ptrs;
 
     PFDI(0);
+    _mm_lfence();
     __asm__ volatile (
         "movq (%%rbx), %%rbx;"
         "movq (%%rbx), %%rbx;"
@@ -1990,6 +1991,7 @@ static void mov_pointerchasing(volatile uint64_t *ptrs, volatile uint64_t reps) 
         : "b"(p)
         : // No clobbers
     );
+    _mm_lfence();
     PFDO(0, reps);
 }
 
