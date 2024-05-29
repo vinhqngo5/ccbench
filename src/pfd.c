@@ -133,7 +133,7 @@ void print_abs_deviation(const abs_deviation_t* abs_dev) {
     PRINT("75-100%% : %-10u ( %5.1f%%  |  avg:  %6.1f  |  abs dev: %6.1f  |  std dev: %6.1f = %5.1f%% )\n", abs_dev->num_dev_rst, vrest, abs_dev->avg_rst, abs_dev->abs_dev_rst, abs_dev->std_dev_rst, std_rspp);
 }
 
-#define PFD_VAL_UP_LIMIT 1500 /* do not consider values higher than this value */
+#define PFD_VAL_UP_LIMIT 5000 /* do not consider values higher than this value */
 
 void get_abs_deviation(volatile ticks* vals, const size_t num_vals, abs_deviation_t* abs_dev) {
     abs_dev->num_vals = num_vals;

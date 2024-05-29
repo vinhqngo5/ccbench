@@ -1897,6 +1897,7 @@ void cas_pointerchasing(volatile uint64_t *ptrs, size_t n_ptrs, volatile uint64_
     volatile uint64_t **p = &ptrs;
 
     PFDI(0);
+    _mm_mfence();
     (void)CAS_U64(p, *p, (uint64_t *)**p);
     (void)CAS_U64(p, *p, (uint64_t *)**p);
     (void)CAS_U64(p, *p, (uint64_t *)**p);
@@ -1929,7 +1930,7 @@ void cas_pointerchasing(volatile uint64_t *ptrs, size_t n_ptrs, volatile uint64_
     (void)CAS_U64(p, *p, (uint64_t *)**p);
     (void)CAS_U64(p, *p, (uint64_t *)**p);
     (void)CAS_U64(p, *p, (uint64_t *)**p);
-    _mm_sfence();
+    _mm_mfence();
     PFDO(0, reps);
 
     // This^ is measuring approx. 32x the latency of one CAS
@@ -1999,7 +2000,7 @@ static void store_pointerchasing(volatile uint64_t *start_ptr, volatile uint64_t
         // is in the modified state.
         start_ptr = (uint64_t*)(*start_ptr = *start_ptr); 
     }
+    // Make sure all stores finish by the time we calculate the rdtsc
+    _mm_mfence();
     PFDO(1, reps);
-    // Make sure all stores finish by the time the pointer chasing thread will start
-    _mm_sfence();
 }
